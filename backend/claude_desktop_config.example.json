@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "nifty-trading-bot": {
+      "command": "python",
+      "args": ["-m", "trading_mcp.standalone"],
+      "cwd": "/Users/admin/ms/nifty_bot_v2/nifty_pro/backend",
+      "env": {
+        "ANTHROPIC_API_KEY": "set-in-backend-.env"
+      }
+    }
+  }
+}

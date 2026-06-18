@@ -1,0 +1,35 @@
+"""Symbol lists and sector mappings for market features."""
+
+NIFTY50 = [
+    "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "HINDUNILVR", "ITC", "SBIN",
+    "BHARTIARTL", "KOTAKBANK", "LT", "AXISBANK", "ASIANPAINT", "MARUTI", "TITAN",
+    "SUNPHARMA", "BAJFINANCE", "WIPRO", "ULTRACEMCO", "NESTLEIND", "HCLTECH",
+    "POWERGRID", "NTPC", "TATAMOTORS", "M&M", "ADANIENT", "JSWSTEEL", "ONGC",
+    "INDUSINDBK", "TECHM", "COALINDIA", "TATASTEEL", "HINDALCO", "GRASIM",
+    "CIPLA", "DIVISLAB", "DRREDDY", "APOLLOHOSP", "EICHERMOT", "BRITANNIA",
+    "BAJAJFINSV", "HEROMOTOCO", "SBILIFE", "HDFCLIFE", "ADANIPORTS", "BPCL",
+    "TATACONSUM", "UPL", "LTIM", "BEL",
+]
+
+INDICES = {
+    "NIFTY50": "NSE:NIFTY50-INDEX",
+    "BANKNIFTY": "NSE:NIFTYBANK-INDEX",
+    "SENSEX": "BSE:SENSEX-INDEX",
+    "INDIAVIX": "NSE:INDIAVIX-INDEX",
+}
+
+SECTORS = {
+    "Banking": ["HDFCBANK", "ICICIBANK", "SBIN", "KOTAKBANK", "AXISBANK", "INDUSINDBK"],
+    "IT": ["TCS", "INFY", "WIPRO", "HCLTECH", "TECHM", "LTIM"],
+    "Auto": ["MARUTI", "TATAMOTORS", "M&M", "EICHERMOT", "HEROMOTOCO", "BAJAJFINSV"],
+    "Pharma": ["SUNPHARMA", "CIPLA", "DIVISLAB", "DRREDDY", "APOLLOHOSP"],
+    "FMCG": ["HINDUNILVR", "ITC", "NESTLEIND", "BRITANNIA", "TATACONSUM"],
+    "Energy": ["RELIANCE", "ONGC", "BPCL", "NTPC", "POWERGRID", "COALINDIA"],
+    "Metals": ["TATASTEEL", "JSWSTEEL", "HINDALCO", "ADANIENT"],
+}
+
+
+def to_fyers(symbol: str) -> str:
+    if symbol.startswith("NSE:") or symbol.startswith("BSE:"):
+        return symbol
+    return f"NSE:{symbol}-EQ"

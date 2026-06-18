@@ -1,0 +1,26 @@
+# Environment / secrets
+backend/.env
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+backend/venv/
+backend/bot.db
+backend/bot.log
+*.egg-info/
+.venv/
+
+# Flutter
+flutter_app/.dart_tool/
+flutter_app/build/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+  

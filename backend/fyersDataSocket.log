@@ -1,0 +1,3 @@
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-17 15:21:56,935+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-17 16:02:43,184+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-17 16:21:43,929+0530","service":"FyersDataSocket"}
