@@ -78,49 +78,73 @@ async def chat(
     tool_calls_log: list[dict] = []
     model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 
-    for _ in range(max_turns):
-        response = client.messages.create(
-            model=model,
-            max_tokens=4096,
-            system=SYSTEM_PROMPT,
-            tools=anthropic_tools,
-            messages=messages,
-        )
+    try:
+        for _ in range(max_turns):
+            response = client.messages.create(
+                model=model,
+                max_tokens=4096,
+                system=SYSTEM_PROMPT,
+                tools=anthropic_tools,
+                messages=messages,
+            )
 
-        # Collect text and tool_use blocks
-        text_parts = []
-        tool_uses = []
-        for block in response.content:
-            if block.type == "text":
-                text_parts.append(block.text)
-            elif block.type == "tool_use":
-                tool_uses.append(block)
+            # Collect text and tool_use blocks
+            text_parts = []
+            tool_uses = []
+            for block in response.content:
+                if block.type == "text":
+                    text_parts.append(block.text)
+                elif block.type == "tool_use":
+                    tool_uses.append(block)
 
-        if response.stop_reason == "end_turn" or not tool_uses:
-            return {
-                "reply": "\n".join(text_parts) or "Done.",
-                "tool_calls": tool_calls_log,
-                "error": None,
-            }
+            if response.stop_reason == "end_turn" or not tool_uses:
+                return {
+                    "reply": "\n".join(text_parts) or "Done.",
+                    "tool_calls": tool_calls_log,
+                    "error": None,
+                }
 
-        # Execute tools and continue conversation
-        messages.append({"role": "assistant", "content": response.content})
+            # Execute tools and continue conversation
+            messages.append({"role": "assistant", "content": response.content})
 
-        tool_results = []
-        for tu in tool_uses:
-            log.info("Tool call: %s(%s)", tu.name, tu.input)
-            result = await execute_tool(tu.name, tu.input or {})
-            tool_calls_log.append({"name": tu.name, "input": tu.input, "result_preview": result[:500]})
-            tool_results.append({
-                "type": "tool_result",
-                "tool_use_id": tu.id,
-                "content": result,
-            })
+            tool_results = []
+            for tu in tool_uses:
+                log.info("Tool call: %s(%s)", tu.name, tu.input)
+                result = await execute_tool(tu.name, tu.input or {})
+                tool_calls_log.append({"name": tu.name, "input": tu.input, "result_preview": result[:500]})
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tu.id,
+                    "content": result,
+                })
 
-        messages.append({"role": "user", "content": tool_results})
+            messages.append({"role": "user", "content": tool_results})
+    except Exception as e:
+        log.error("Claude API error: %s", e)
+        return {
+            "reply": _friendly_api_error(e),
+            "tool_calls": tool_calls_log,
+            "error": "api_error",
+        }
 
     return {
         "reply": "Reached maximum tool turns. Try a simpler question.",
         "tool_calls": tool_calls_log,
         "error": "max_turns",
     }
+
+
+def _friendly_api_error(exc: Exception) -> str:
+    msg = str(exc).lower()
+    if "credit balance" in msg or "insufficient" in msg:
+        return (
+            "Anthropic API credits are exhausted. "
+            "Add credits at console.anthropic.com → Plans & Billing, then try again."
+        )
+    if "invalid_api_key" in msg or "authentication" in msg or "unauthorized" in msg:
+        return "Invalid Anthropic API key. Check ANTHROPIC_API_KEY in backend/.env and restart."
+    if "rate_limit" in msg or "429" in msg:
+        return "Claude rate limit hit. Wait a minute and try again."
+    if "overloaded" in msg or "529" in msg:
+        return "Claude is temporarily overloaded. Try again in a few moments."
+    return f"Claude API error: {exc}"

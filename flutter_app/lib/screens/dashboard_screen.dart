@@ -39,7 +39,8 @@ class DashboardScreen extends StatelessWidget {
                       liveCandle: state.liveCandle,
                       activeTrade: state.activeTrade,
                       activeSignal: state.activeSignal,
-                      currentPrice: state.currentPrice,
+                      currentPrice: state.displayPrice,
+                      marketOpen: state.marketOpen,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -53,7 +54,7 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: 10),
 
                   // Active trade card
-                  TradeCard(trade: state.activeTrade, currentPrice: state.currentPrice),
+                  TradeCard(trade: state.activeTrade, currentPrice: state.displayPrice),
                   const SizedBox(height: 10),
 
                   // Stats

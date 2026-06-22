@@ -8,7 +8,7 @@ class PriceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final price = state.currentPrice;
+    final price = state.displayPrice;
     final base = state.candles.isNotEmpty ? state.candles.first.open : 24380.0;
     final chg = price - base;
     final pct = base > 0 ? chg / base * 100 : 0;

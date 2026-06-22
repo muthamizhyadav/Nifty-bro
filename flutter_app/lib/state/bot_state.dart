@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/api_config.dart';
+import '../utils/market_time.dart';
 
 String get API_URL => apiBaseUrl;
 String get WS_URL => wsBaseUrl;
@@ -28,14 +30,23 @@ class Candle {
 
 class BotState extends ChangeNotifier {
   WebSocketChannel? _ws;
+  Timer? _reconnectTimer;
+  bool _connecting = false;
   bool running = false;
   bool connected = false;       // WebSocket live
   bool backendReachable = false; // REST API reachable
   bool authenticated = false;
   bool marketDataOk = false;
+  bool marketOpen = false;
   String? statusMessage;
-
   double currentPrice = 0;
+
+  double get displayPrice {
+    if (currentPrice > 0) return currentPrice;
+    if (liveCandle != null) return liveCandle!.close;
+    if (candles.isNotEmpty) return candles.last.close;
+    return 0;
+  }
   String selectedTimeframe = '15m';  // 5m, 15m, 1h, 3h
   Candle? liveCandle;  // the currently-forming candle
   List<Candle> candles = [];
@@ -46,6 +57,9 @@ class BotState extends ChangeNotifier {
   List<Map<String, String>> logs = [];
 
   void connect() {
+    if (_connecting) return;
+    _connecting = true;
+    _reconnectTimer?.cancel();
     _ws?.sink.close();
     connected = false;
     notifyListeners();
@@ -56,21 +70,24 @@ class BotState extends ChangeNotifier {
         _handleMessage,
         onError: (e) {
           connected = false;
+          _connecting = false;
           _addLog('WebSocket error: $e', 'red');
           notifyListeners();
           _reconnect();
         },
         onDone: () {
           connected = false;
+          _connecting = false;
           _addLog('WebSocket disconnected', 'amber');
           notifyListeners();
           _reconnect();
         },
       );
       fetchInitial();
-      fetchCandles();
+      fetchCandles(silent: true);
     } catch (e) {
       connected = false;
+      _connecting = false;
       _addLog('Connection failed: $e', 'red');
       _reconnect();
     }
@@ -78,7 +95,8 @@ class BotState extends ChangeNotifier {
   }
 
   void _reconnect() {
-    Future.delayed(const Duration(seconds: 5), connect);
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), connect);
   }
 
   void _handleMessage(dynamic raw) {
@@ -90,7 +108,6 @@ class BotState extends ChangeNotifier {
       switch (type) {
         case 'tick':
           currentPrice = (data['price'] ?? 0).toDouble();
-          // Backend's forming candle is 15m — only overlay it on the 15m view
           if (data['live_candle'] != null && selectedTimeframe == '15m') {
             liveCandle = Candle.fromJson(data['live_candle']);
           }
@@ -100,7 +117,12 @@ class BotState extends ChangeNotifier {
           // other timeframes refresh via fetchCandles().
           if (selectedTimeframe == '15m') {
             final c = Candle.fromJson(data['candle']);
-            candles.add(c);
+            if (candles.isNotEmpty &&
+                MarketTime.sameCandleBucket(candles.last.time, c.time)) {
+              candles[candles.length - 1] = c;
+            } else {
+              candles.add(c);
+            }
             if (candles.length > 100) candles.removeAt(0);
             liveCandle = null;
           }
@@ -123,10 +145,11 @@ class BotState extends ChangeNotifier {
           _addLog('Trade closed: ${data['exit_reason']} | PnL: ₹${data['final_pnl']}',
                   (data['final_pnl'] ?? 0) > 0 ? 'green' : 'red');
           fetchInitial();
-      fetchCandles();
+          fetchCandles(silent: true);
           break;
         case 'bot_started':
-          running = true; _addLog('Bot started', 'green');
+          running = true;
+          _addLog('Bot started', 'green');
           break;
         case 'bot_stopped':
           running = false; _addLog('Bot stopped', 'amber');
@@ -134,11 +157,11 @@ class BotState extends ChangeNotifier {
         case 'history_loaded':
           if (data['candles'] != null) {
             candles = (data['candles'] as List).map((c) => Candle.fromJson(c)).toList();
-            _addLog('Loaded ${candles.length} historical candles', 'blue');
           }
           break;
         case 'init':
           connected = true;
+          _connecting = false;
           if (data['candles'] != null) {
             candles = (data['candles'] as List).map((c) => Candle.fromJson(c)).toList();
           }
@@ -146,6 +169,13 @@ class BotState extends ChangeNotifier {
           activeTrade = data['active_trade'];
           running = data['running'] ?? false;
           authenticated = data['authenticated'] ?? false;
+          marketOpen = data['market_open'] ?? false;
+          if ((data['current_price'] ?? 0) > 0) {
+            currentPrice = (data['current_price']).toDouble();
+          }
+          if (data['live_candle'] != null && selectedTimeframe == '15m') {
+            liveCandle = Candle.fromJson(data['live_candle']);
+          }
           _addLog('WebSocket connected', 'green');
           break;
         case 'mcp_reply':
@@ -159,6 +189,8 @@ class BotState extends ChangeNotifier {
   }
 
   void _addLog(String msg, String color) {
+    // Skip back-to-back identical entries (common on mobile reconnect)
+    if (logs.isNotEmpty && logs.first['msg'] == msg) return;
     final t = DateTime.now().toString().substring(11, 19);
     logs.insert(0, {'time': t, 'msg': msg, 'color': color});
     if (logs.length > 50) logs.removeLast();
@@ -177,9 +209,12 @@ class BotState extends ChangeNotifier {
       activeTrade = status['active_trade'];
       authenticated = status['authenticated'] ?? authenticated;
       marketDataOk = status['market_data_ok'] ?? false;
+      marketOpen = status['market_open'] ?? marketOpen;
       statusMessage = status['message'];
       if ((status['current_price'] ?? 0) > 0) {
         currentPrice = (status['current_price']).toDouble();
+      } else if (currentPrice <= 0 && candles.isNotEmpty) {
+        currentPrice = candles.last.close;
       }
       stats = Map<String, dynamic>.from(jsonDecode(res[1].body));
       trades = List<Map<String, dynamic>>.from(jsonDecode(res[2].body));
@@ -207,16 +242,29 @@ class BotState extends ChangeNotifier {
     await fetchCandles();
   }
 
-  Future<void> fetchCandles() async {
+  Future<void> fetchCandles({bool silent = false}) async {
     try {
       final res = await http.get(
-        Uri.parse('$API_URL/candles?tf=$selectedTimeframe&limit=1000'));
-      final list = jsonDecode(res.body) as List;
-      candles = list.map((c) => Candle.fromJson(c)).toList();
-      _addLog('Loaded ${candles.length} $selectedTimeframe candles', 'blue');
+        Uri.parse('$API_URL/candles?tf=$selectedTimeframe&limit=500'));
+      if (res.statusCode != 200) {
+        throw Exception('HTTP ${res.statusCode}');
+      }
+      final body = jsonDecode(res.body);
+      if (body is! List) {
+        throw Exception('Invalid candle response');
+      }
+      candles = body.map((c) => Candle.fromJson(c as Map<String, dynamic>)).toList();
+      if (currentPrice <= 0 && candles.isNotEmpty) {
+        currentPrice = candles.last.close;
+      }
+      if (!silent && candles.isNotEmpty) {
+        _addLog('Loaded ${candles.length} $selectedTimeframe candles', 'blue');
+      }
       notifyListeners();
     } catch (e) {
-      _addLog('Candle fetch error: $e', 'red');
+      if (candles.isEmpty) {
+        _addLog('Candle fetch error: $e', 'red');
+      }
     }
   }
 
@@ -233,33 +281,64 @@ class BotState extends ChangeNotifier {
     }
   }
 
-  Future<void> connectFyers() async {
-    try {
-      final res = await http.get(Uri.parse('$API_URL/auth/url'));
-      final data = jsonDecode(res.body);
-      _authUrl = data['auth_url'];
-      notifyListeners();
+  bool connectingFyers = false;
+  String? connectFyersError;
+  String? _authUrl;
+  String? get authUrl => _authUrl;
 
-      if (_authUrl != null) {
-        final uri = Uri.parse(_authUrl!);
-        // Actually open the Fyers login (new tab on web)
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, webOnlyWindowName: '_blank', mode: LaunchMode.externalApplication);
-          _addLog('Fyers login opened in new tab', 'green');
-        } else {
-          _addLog('Copy the link below and open it manually', 'amber');
-        }
-      }
-    } catch (e) {
-      _addLog('Auth error: $e', 'red');
+  bool get _isMobileApp => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
+  Future<void> _openAuthUrl(Uri uri) async {
+    final opened = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+      webOnlyWindowName: kIsWeb ? '_blank' : null,
+    );
+    if (opened) {
+      connectFyersError = null;
+      _addLog('Fyers login opened in browser', 'green');
+    } else {
+      connectFyersError = 'Could not open browser — tap the link below';
+      _addLog(connectFyersError!, 'amber');
     }
   }
 
-    String? _authUrl;
-  String? get authUrl => _authUrl;
+  Future<void> connectFyers() async {
+    if (connectingFyers) return;
+    connectingFyers = true;
+    connectFyersError = null;
+    notifyListeners();
 
-    @override
+    try {
+      final mobileParam = _isMobileApp ? '?mobile=true' : '';
+      final res = await http
+          .get(Uri.parse('$API_URL/auth/url$mobileParam'))
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode != 200) {
+        throw Exception('Backend returned ${res.statusCode}');
+      }
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      _authUrl = data['auth_url'] as String?;
+      notifyListeners();
+
+      if (_authUrl != null) {
+        await _openAuthUrl(Uri.parse(_authUrl!));
+      } else {
+        connectFyersError = 'No login URL from backend';
+        _addLog(connectFyersError!, 'red');
+      }
+    } catch (e) {
+      connectFyersError = 'Cannot reach backend at $API_URL — is it running?';
+      _addLog('Auth error: $e', 'red');
+    } finally {
+      connectingFyers = false;
+      notifyListeners();
+    }
+  }
+
+  @override
   void dispose() {
+    _reconnectTimer?.cancel();
     _ws?.sink.close();
     super.dispose();
   }

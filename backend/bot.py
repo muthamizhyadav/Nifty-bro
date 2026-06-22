@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Callable, Optional
 
 from config import CONFIG
+from candle_utils import candle_bucket_ts, is_market_open
 from brokers import get_broker
 from analyzer import Analyzer
 from risk_manager import RiskManager
@@ -67,6 +68,8 @@ class NiftyBot:
         self.last_refresh = 0
         self.running = False
         self.start_time = None
+        self.last_ltp = 0.0
+        self._forming_refresh_task = None
 
         log.info("=" * 60)
         log.info("NIFTY 50 AI BOT — Professional Edition")
@@ -107,10 +110,14 @@ class NiftyBot:
         await self.broker.subscribe(self.index_symbol)
         await self.notifier.send(f"🟢 Bot STARTED\nMode: {'PAPER' if self.config['paper_trading'] else 'LIVE'}")
         await self.broadcast("bot_started", {"time": datetime.now().isoformat()})
+        self._forming_refresh_task = asyncio.create_task(self._forming_candle_loop())
         log.info("Bot live — watching market")
 
     async def stop(self):
         self.running = False
+        if self._forming_refresh_task:
+            self._forming_refresh_task.cancel()
+            self._forming_refresh_task = None
         await self.broker.disconnect()
         await self.notifier.send("🔴 Bot STOPPED")
         await self.broadcast("bot_stopped", {})
@@ -127,9 +134,11 @@ class NiftyBot:
             # Index data — years of continuous candles, works 24/7
             c15 = self.broker.get_historical_candles(self.index_symbol, "15", from_date, today)
             c60 = self.broker.get_historical_candles(self.index_symbol, "60", from_date, today)
-            self.candles_15m = c15[-100:] if c15 else []
-            self.candles_1h = c60[-50:] if c60 else []
+            self.candles_15m = c15[-500:] if c15 else []
+            self.candles_1h = c60[-200:] if c60 else []
             log.info(f"Loaded {len(self.candles_15m)} 15m + {len(self.candles_1h)} 1H candles")
+
+            self._seed_forming_candle(c15[-1] if c15 else None)
 
             if not self.candles_15m:
                 log.warning("No historical candles. Check: (1) token valid? (2) instrument_expiry current month?")
@@ -139,11 +148,65 @@ class NiftyBot:
         except Exception as e:
             log.error(f"History load error: {e}")
 
+    def _seed_forming_candle(self, last_bar):
+        """Align live bar with Fyers (TradingView) bucket."""
+        if not last_bar:
+            self.t15_open = None
+            self.current_15m = None
+            return
+        last = dict(last_bar)
+        now_bucket = candle_bucket_ts(time.time(), 15)
+        if is_market_open() and last.get("time") == now_bucket:
+            if self.candles_15m and self.candles_15m[-1].get("time") == now_bucket:
+                self.candles_15m.pop()
+            self.current_15m = last
+            self.t15_open = now_bucket
+            if last.get("close"):
+                self.last_ltp = float(last["close"])
+        else:
+            self.t15_open = last.get("time")
+            self.current_15m = None
+            if last.get("close"):
+                self.last_ltp = float(last["close"])
+
+    async def _forming_candle_loop(self):
+        """Refresh forming 15m bar from Fyers so OHLC matches TradingView."""
+        while self.running:
+            try:
+                await asyncio.sleep(30)
+                if is_market_open():
+                    self._refresh_forming_candle_from_broker()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                log.debug(f"Forming candle refresh: {e}")
+
+    def _refresh_forming_candle_from_broker(self):
+        from datetime import timedelta
+        today = datetime.now().strftime("%Y-%m-%d")
+        from_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+        c15 = self.broker.get_historical_candles(self.index_symbol, "15", from_date, today)
+        if not c15:
+            return
+        self._seed_forming_candle(c15[-1])
+
+    def get_display_price(self) -> float:
+        if self.last_ltp > 0:
+            return self.last_ltp
+        if self.current_15m and self.current_15m.get("close"):
+            return float(self.current_15m["close"])
+        if self.candles_15m:
+            return float(self.candles_15m[-1].get("close", 0))
+        return 0.0
+
     # ─── Tick handler ─────────────────────────────────────────────────────
     async def on_tick(self, message):
         try:
             ltp = float(message.get("ltp", 0))
-            if ltp <= 0: return
+            if ltp <= 0:
+                return
+
+            self.last_ltp = ltp
 
             # Build candle FIRST so we can include the live forming candle
             self._update_candle(ltp, 15)
@@ -186,30 +249,38 @@ class NiftyBot:
         return {"regime": "Extreme", "action": "Halve position"}
 
     def _update_candle(self, price, minutes):
+        if minutes == 15 and not is_market_open():
+            return
+
         now = time.time()
-        bucket = now - (now % (minutes * 60))
+        bucket = candle_bucket_ts(now, minutes)
 
         if minutes == 15:
             if self.t15_open is None:
                 self.t15_open = bucket
                 self.current_15m = {"open": price, "high": price, "low": price,
-                                     "close": price, "volume": 1, "time": bucket}
+                                     "close": price, "volume": 0, "time": bucket}
                 return
             if bucket > self.t15_open:
-                self.candles_15m.append(dict(self.current_15m))
-                if len(self.candles_15m) > 250:
-                    self.candles_15m = self.candles_15m[-250:]
-                self.db.save_candle("15m", self.current_15m)
-                log.info(f"15m close | C: {self.current_15m['close']:.2f}")
-                asyncio.create_task(self.broadcast("candle_close", {"tf": "15m", "candle": self.current_15m}))
-                asyncio.create_task(self._on_candle_close())
+                if self.current_15m:
+                    self.candles_15m.append(dict(self.current_15m))
+                if len(self.candles_15m) > 500:
+                    self.candles_15m = self.candles_15m[-500:]
+                closed = dict(self.current_15m) if self.current_15m else None
+                if closed:
+                    self.db.save_candle("15m", closed)
+                    log.info(f"15m close | C: {closed['close']:.2f}")
+                    asyncio.create_task(self.broadcast("candle_close", {"tf": "15m", "candle": closed}))
+                    asyncio.create_task(self._on_candle_close())
                 self.t15_open = bucket
                 self.current_15m = {"open": price, "high": price, "low": price,
-                                     "close": price, "volume": 1, "time": bucket}
-            else:
+                                     "close": price, "volume": 0, "time": bucket}
+            elif self.current_15m:
                 c = self.current_15m
-                c["high"] = max(c["high"], price); c["low"] = min(c["low"], price)
-                c["close"] = price; c["volume"] += 1
+                c["high"] = max(c["high"], price)
+                c["low"] = min(c["low"], price)
+                c["close"] = price
+                # Keep Fyers volume on seeded bars; don't replace with tick count
         elif minutes == 60:
             if self.t1h_open is None:
                 self.t1h_open = bucket

@@ -6,6 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -34,10 +39,10 @@ class SettingsScreen extends StatelessWidget {
             _field('Mode', 'PAPER TRADING'),
           ]),
           _card('Fyers API — mobile login', [
-            _info('Add redirect URL in Fyers dashboard:'),
-            _info('http://192.168.1.2:8000/api/auth/callback'),
-            _info('Phone + Mac must be on same Wi‑Fi'),
-            _info('USB dev: run adb reverse tcp:8000 tcp:8000'),
+            _info('Add BOTH redirect URLs in Fyers dashboard:'),
+            _info('http://127.0.0.1:8000/api/auth/callback  (USB + adb reverse)'),
+            _info('http://192.168.1.2:8000/api/auth/callback  (Wi‑Fi)'),
+            _info('USB dev: adb reverse tcp:8000 tcp:8000'),
           ]),
           _card('Fyers API status', [
             _field('App ID', 'Configured'),
@@ -74,44 +79,60 @@ class SettingsScreen extends StatelessWidget {
                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 10),
-        // Connect / Reconnect — ALWAYS available (tokens expire daily)
-        GestureDetector(
-          onTap: state.connectFyers,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFF00D97E),
-              borderRadius: BorderRadius.circular(6),
+        if (!state.backendReachable && !state.connected)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Text('Backend not reachable — start python main.py on your Mac',
+              style: TextStyle(color: Color(0xFFFF4757), fontSize: 10)),
+          ),
+        if (state.connectFyersError != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(state.connectFyersError!,
+              style: const TextStyle(color: Color(0xFFF5A623), fontSize: 10)),
+          ),
+        Material(
+          color: const Color(0xFF00D97E),
+          borderRadius: BorderRadius.circular(6),
+          child: InkWell(
+            onTap: state.connectingFyers ? null : state.connectFyers,
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              alignment: Alignment.center,
+              child: state.connectingFyers
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    )
+                  : Text(state.authenticated ? 'Reconnect Fyers' : 'Connect Fyers',
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
             ),
-            child: Text(state.authenticated ? 'Reconnect Fyers' : 'Connect Fyers',
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ),
         if (state.authenticated) const SizedBox(height: 8),
         if (state.authenticated)
-          GestureDetector(
-            onTap: state.disconnectFyers,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFFF4757)),
-                borderRadius: BorderRadius.circular(6),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: state.disconnectFyers,
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFFF4757)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text('Disconnect / Logout',
+                  style: TextStyle(color: Color(0xFFFF4757), fontWeight: FontWeight.bold, fontSize: 12)),
               ),
-              child: const Text('Disconnect / Logout',
-                style: TextStyle(color: Color(0xFFFF4757), fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ),
         if (state.authUrl != null) Padding(
           padding: const EdgeInsets.only(top: 10),
-          child: GestureDetector(
-            onTap: () async {
-              final uri = Uri.parse(state.authUrl!);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, webOnlyWindowName: '_blank', mode: LaunchMode.externalApplication);
-              }
-            },
+          child: InkWell(
+            onTap: () => _openUrl(state.authUrl!),
             child: Text(state.authUrl!,
               style: const TextStyle(color: Color(0xFF4DA6FF), fontSize: 10, decoration: TextDecoration.underline)),
           ),

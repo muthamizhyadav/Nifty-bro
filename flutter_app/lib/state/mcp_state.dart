@@ -50,9 +50,16 @@ class McpState extends ChangeNotifier {
         body: jsonEncode({'message': trimmed, 'history': history}),
       );
 
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(res.body) as Map<String, dynamic>;
+      } catch (_) {
+        throw Exception(res.statusCode >= 400
+            ? 'Server error (${res.statusCode})'
+            : 'Invalid response from server');
+      }
       if (res.statusCode >= 400) {
-        throw Exception(data['detail'] ?? 'Request failed');
+        throw Exception(data['detail'] ?? data['reply'] ?? 'Request failed');
       }
 
       final reply = data['reply']?.toString() ?? 'No response';

@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import '../state/bot_state.dart';
+import '../utils/market_time.dart';
 
 /// TradingView-style candlestick chart.
 /// - Dynamic Y axis with round price levels
@@ -16,6 +17,7 @@ class CandlestickChart extends StatefulWidget {
   final Map<String, dynamic>? activeTrade;
   final Map<String, dynamic>? activeSignal;
   final double currentPrice;
+  final bool marketOpen;
 
   const CandlestickChart({
     super.key,
@@ -24,6 +26,7 @@ class CandlestickChart extends StatefulWidget {
     this.activeTrade,
     this.activeSignal,
     required this.currentPrice,
+    this.marketOpen = false,
   });
 
   @override
@@ -36,9 +39,33 @@ class _CandlestickChartState extends State<CandlestickChart> {
   double _chartWidth = 400;
   Offset? _mouse;
 
+  Candle? get _formingCandle {
+    if (widget.liveCandle != null) return widget.liveCandle;
+    if (!widget.marketOpen || widget.currentPrice <= 0 || widget.candles.isEmpty) {
+      return null;
+    }
+    final last = widget.candles.last;
+    return Candle(
+      time: last.time,
+      open: last.open,
+      high: last.high > widget.currentPrice ? last.high : widget.currentPrice,
+      low: last.low < widget.currentPrice ? last.low : widget.currentPrice,
+      close: widget.currentPrice,
+      volume: last.volume,
+    );
+  }
+
   List<Candle> get _all {
     final list = <Candle>[...widget.candles];
-    if (widget.liveCandle != null) list.add(widget.liveCandle!);
+    final live = _formingCandle;
+    if (live == null) return list;
+    // Replace forming bar instead of duplicating last historical candle
+    if (list.isNotEmpty &&
+        MarketTime.sameCandleBucket(list.last.time, live.time)) {
+      list[list.length - 1] = live;
+    } else if (widget.marketOpen) {
+      list.add(live);
+    }
     return list;
   }
 
@@ -200,13 +227,12 @@ class _TVPainter extends CustomPainter {
     final labelEvery = (count / 6).clamp(1, count).round();
     for (int i = 0; i < visible.length; i += labelEvery) {
       final c = visible[i];
-      final dt = DateTime.fromMillisecondsSinceEpoch(
-        c.time > 9999999999 ? c.time : c.time * 1000);
+      final dt = MarketTime.istFromEpoch(c.time);
       final x = padL + i * cw + cw / 2;
       String label;
       if (visible.length > 1) {
-        final t0 = visible[0].time > 9999999999 ? visible[0].time ~/ 1000 : visible[0].time;
-        final t1 = visible[1].time > 9999999999 ? visible[1].time ~/ 1000 : visible[1].time;
+        final t0 = MarketTime.epochSeconds(visible[0].time);
+        final t1 = MarketTime.epochSeconds(visible[1].time);
         final gap = (t1 - t0).abs();
         if (gap < 3600) {
           label = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -320,8 +346,7 @@ class _TVPainter extends CustomPainter {
       // Hovered candle OHLC tooltip
       final candleIdx = ((mouse!.dx - padL) / cw).floor().clamp(0, visible.length - 1);
       final hc = visible[candleIdx];
-      final dt = DateTime.fromMillisecondsSinceEpoch(
-        hc.time > 9999999999 ? hc.time : hc.time * 1000);
+      final dt = MarketTime.istFromEpoch(hc.time);
       final bull = hc.close >= hc.open;
       final ohlcColor = bull ? const Color(0xFF26A69A) : const Color(0xFFEF5350);
       final info = 'O ${hc.open.toStringAsFixed(1)}  H ${hc.high.toStringAsFixed(1)}  '

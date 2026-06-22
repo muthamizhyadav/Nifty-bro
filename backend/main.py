@@ -34,6 +34,7 @@ load_dotenv(Path(__file__).parent / ".env")
 from bot import NiftyBot
 from database import Database
 from config import CONFIG
+from candle_utils import is_market_open
 from trading_mcp.context import refs as mcp_refs
 from trading_mcp import claude_agent
 from trading_mcp.tools import TOOL_DEFINITIONS, execute_tool
@@ -125,14 +126,18 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # ── FYERS AUTH (integrated, no copy-paste) ──
 @app.get("/api/auth/url")
-async def get_auth_url():
+async def get_auth_url(mobile: bool = False):
     app_id = CONFIG.get("fyers_app_id", "").strip()
     if not app_id or "YOUR_" in app_id:
         raise HTTPException(400, "Set fyers_app_id in config.py first")
+    # USB dev (adb reverse): phone browser must use 127.0.0.1, not LAN IP
+    redirect = FYERS_REDIRECT
+    if mobile and not os.getenv("FYERS_REDIRECT_URI"):
+        redirect = f"http://127.0.0.1:{_PORT}/api/auth/callback"
     url = (f"https://api-t1.fyers.in/api/v3/generate-authcode"
-           f"?client_id={app_id}&redirect_uri={FYERS_REDIRECT}"
+           f"?client_id={app_id}&redirect_uri={redirect}"
            f"&response_type=code&state=niftybot")
-    return {"auth_url": url}
+    return {"auth_url": url, "redirect_uri": redirect}
 
 
 @app.get("/api/auth/callback")
@@ -260,7 +265,8 @@ async def status():
         "authenticated": has_token,
         "market_data_ok": candle_count > 0,
         "candle_count": candle_count,
-        "current_price": bot.current_15m["close"] if (bot and bot.current_15m) else 0,
+        "current_price": bot.get_display_price() if bot else 0,
+        "market_open": is_market_open(),
         "message": (
             "Fyers token expired — reconnect in Settings"
             if has_token and candle_count == 0 and (bot and bot.running)
@@ -312,31 +318,70 @@ def _resample(candles, factor):
         })
     return out
 
+TF_MAP = {"5m": "5", "15m": "15", "1h": "60", "3h": "60_RESAMPLE3"}
+_candle_cache: dict = {}  # tf -> {"ts": float, "data": list}
+
+
+def _merge_forming_bar(candles: list, forming) -> list:
+    """Replace last bar with live forming candle when same 15m bucket."""
+    if not forming or not candles:
+        return candles
+    out = list(candles)
+    if out and out[-1].get("time") == forming.get("time"):
+        broker = out[-1]
+        out[-1] = {
+            "time": forming["time"],
+            "open": broker["open"],
+            "high": max(broker["high"], forming.get("high", broker["high"])),
+            "low": min(broker["low"], forming.get("low", broker["low"])),
+            "close": forming.get("close", broker["close"]),
+            "volume": broker.get("volume") or forming.get("volume", 0),
+        }
+    elif is_market_open() and forming.get("time"):
+        out.append(forming)
+    return out
+
+
 @app.get("/api/candles")
-async def get_candles(tf: str = "15m", limit: int = 100):
+async def get_candles(tf: str = "15m", limit: int = 500):
     """Fetch candles for a given timeframe (5m, 15m, 1h, 3h)."""
     if not bot:
         return []
-    from datetime import datetime, timedelta
-    today = datetime.now().strftime("%Y-%m-%d")
-    # Fetch enough history depending on timeframe
-    days_back = {"5m": 10, "15m": 30, "1h": 90, "3h": 120}.get(tf, 30)
-    from_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
 
-    res = TF_MAP.get(tf, "15")
-    log.info(f"/api/candles tf={tf} symbol={bot.index_symbol} from={from_date} to={today}")
-    try:
-        if res == "60_RESAMPLE3":
-            hourly = bot.broker.get_historical_candles(bot.index_symbol, "60", from_date, today)
-            candles = _resample(hourly, 3)
-        else:
-            candles = bot.broker.get_historical_candles(bot.index_symbol, res, from_date, today)
-        result = candles[-limit:] if candles else []
-        log.info(f"/api/candles tf={tf} -> returning {len(result)} candles")
-        return result
-    except Exception as e:
-        log.error(f"Candle fetch error ({tf}): {e}")
-        return []
+    import time as _time
+    from datetime import datetime, timedelta
+
+    limit = min(max(limit, 10), 1000)
+    cache_ttl = 45 if tf != "15m" else 15
+    cached = _candle_cache.get(tf)
+    if cached and (_time.time() - cached["ts"]) < cache_ttl:
+        result = cached["data"]
+    else:
+        today = datetime.now().strftime("%Y-%m-%d")
+        days_back = {"5m": 10, "15m": 30, "1h": 90, "3h": 120}.get(tf, 30)
+        from_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        res = TF_MAP.get(tf, "15")
+        log.info(f"/api/candles tf={tf} symbol={bot.index_symbol} from={from_date} to={today}")
+        try:
+            if res == "60_RESAMPLE3":
+                hourly = bot.broker.get_historical_candles(bot.index_symbol, "60", from_date, today)
+                result = _resample(hourly, 3)
+            else:
+                result = bot.broker.get_historical_candles(bot.index_symbol, res, from_date, today)
+            if result is None:
+                result = []
+            _candle_cache[tf] = {"ts": _time.time(), "data": result}
+            log.info(f"/api/candles tf={tf} -> returning {len(result)} candles")
+        except Exception as e:
+            log.error(f"Candle fetch error ({tf}): {e}")
+            if cached:
+                result = cached["data"]
+            else:
+                return []
+
+    if tf == "15m" and bot.current_15m and is_market_open():
+        result = _merge_forming_bar(result, bot.current_15m)
+    return result[-limit:] if result else []
 
 
 @app.websocket("/ws")
@@ -351,6 +396,9 @@ async def ws_endpoint(ws: WebSocket):
             "running": bot.running if bot else False,
             "authenticated": bool(CONFIG.get("fyers_access_token") and "FILLED" not in CONFIG.get("fyers_access_token", "")),
             "mcp_configured": claude_agent.is_configured(),
+            "current_price": bot.get_display_price() if bot else 0,
+            "live_candle": bot.current_15m if bot else None,
+            "market_open": is_market_open(),
         }})
         while True:
             msg = await ws.receive_text()
