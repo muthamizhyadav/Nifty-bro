@@ -5,3 +5,14 @@
 {"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-18 23:51:15,808+0530","service":"FyersDataSocket"}
 {"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-18 23:51:15,813+0530","service":"FyersDataSocket"}
 {"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-22 20:43:24,634+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-22 21:48:13,841+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-22 21:50:52,078+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-22 21:52:29,892+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-23 00:43:54,990+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[__symbol_conversion:1334] data_ws","message":{"code":-300,"message":"Please provide valid token","s":"error","type":"sub"},"timestamp":"2026-06-23 00:44:26,229+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-23 11:31:26,096+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-23 11:32:16,956+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-23 11:35:02,731+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"Connection timed out","timestamp":"2026-06-23 13:49:57,082+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-23 13:50:02,100+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[__symbol_conversion:1334] data_ws","message":{"code":-300,"message":"Please provide valid token","s":"error","type":"sub"},"timestamp":"2026-06-23 13:50:04,269+0530","service":"FyersDataSocket"}
