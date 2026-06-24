@@ -11,6 +11,8 @@ class MarketTime {
         .add(_istOffset);
   }
 
+  static DateTime istNow() => DateTime.now().toUtc().add(_istOffset);
+
   static bool sameCandleBucket(int t1, int t2, {int minutes = 15}) {
     final a = istFromEpoch(t1);
     final b = istFromEpoch(t2);
