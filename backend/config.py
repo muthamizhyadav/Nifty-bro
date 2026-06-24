@@ -28,7 +28,7 @@ CONFIG = {
     # 3. Run: python fyers_auth.py (refreshes every 15 days)
     "fyers_app_id": "5LITWFWCEU-100",          # e.g. "ABC123-100"
     "fyers_secret_key": "EWTZ6L9L9C",       # 32-char string
-    "fyers_access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiZDoxIiwiZDoyIiwieDowIiwieDoxIiwieDoyIl0sImF0X2hhc2giOiJnQUFBQUFCcU9WVmtGX0NSVEZQOUM3QnZVN2pmcU9iQWg1ZHh6R0hDaDIxTWdXWlRxVUotcGpXTVA2UnA5OTdIbzh1TEgwdDB3dFUyVTZNdTdaMi1JZWFUd0J0VHRpMldpYTFuT1k1X2dPdFpyQUpGeWdoRmFEZz0iLCJkaXNwbGF5X25hbWUiOiIiLCJvbXMiOiJLMSIsImhzbV9rZXkiOiI5Yzg2MWZiZWE4ZjU1NTlmMDY3MjU2MjBmYWI0NmUxMDRjMTQwZTdhNjYzODQxNWQwYTExYzQ5NSIsImlzRGRwaUVuYWJsZWQiOiJOIiwiaXNNdGZFbmFibGVkIjoiWSIsImZ5X2lkIjoiRkFGOTUyNTAiLCJhcHBUeXBlIjoxMDAsImV4cCI6MTc4MjE3NDYwMCwiaWF0IjoxNzgyMTQyMzA4LCJpc3MiOiJhcGkuZnllcnMuaW4iLCJuYmYiOjE3ODIxNDIzMDgsInN1YiI6ImFjY2Vzc190b2tlbiJ9.uTFYAWOGZcn1t-BAJAr8Iwn-fdAPLH2DmvGqjnH8ZCo",
+    "fyers_access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiZDoxIiwiZDoyIiwieDowIiwieDoxIiwieDoyIl0sImF0X2hhc2giOiJnQUFBQUFCcU80amptcjVfM0FQd3cyS1p3bHBvanlPNktqUDdfUEZLWjJDQTNuNzB5UzVXVzFkT3FxRFFiR3RWM0hMMGN4MDE4NEwxRExFemlyMzVQQ3BjeHhOLUtLSnFHSmoyUW9SUHFtV0ZoaE5EVFpGSFg5dz0iLCJkaXNwbGF5X25hbWUiOiIiLCJvbXMiOiJLMSIsImhzbV9rZXkiOiI1OTlhYmNhZGExNDhjMjcxMGU3NmI2ODdkOTBkNWVkMGRjOGM2MzFiMjg0NjA1YTNkNzgxYmJiMCIsImlzRGRwaUVuYWJsZWQiOiJOIiwiaXNNdGZFbmFibGVkIjoiWSIsImZ5X2lkIjoiRkFGOTUyNTAiLCJhcHBUeXBlIjoxMDAsImV4cCI6MTc4MjM0NzQwMCwiaWF0IjoxNzgyMjg2NTYzLCJpc3MiOiJhcGkuZnllcnMuaW4iLCJuYmYiOjE3ODIyODY1NjMsInN1YiI6ImFjY2Vzc190b2tlbiJ9.jeyz-pAeIguIADRjS6G54Jwy-Q9Z7vsAxWPvF-_h2rc",
 
     # ═══ CLAUDE AI (MCP assistant) ═══════════════════════════════════
     # Set ANTHROPIC_API_KEY in backend/.env — never commit the key.

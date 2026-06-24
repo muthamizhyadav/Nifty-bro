@@ -16,3 +16,7 @@
 {"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"Connection timed out","timestamp":"2026-06-23 13:49:57,082+0530","service":"FyersDataSocket"}
 {"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-23 13:50:02,100+0530","service":"FyersDataSocket"}
 {"level":"ERROR","location":"[__symbol_conversion:1334] data_ws","message":{"code":-300,"message":"Please provide valid token","s":"error","type":"sub"},"timestamp":"2026-06-23 13:50:04,269+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-24 12:34:24,827+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-24 12:34:38,048+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-24 12:51:43,567+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:287] data_ws","message":{"type":"cn","code":-300,"message":"Please provide valid token","s":"error"},"timestamp":"2026-06-24 13:02:23,111+0530","service":"FyersDataSocket"}
