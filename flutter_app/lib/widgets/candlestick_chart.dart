@@ -300,7 +300,7 @@ class _TVPainter extends CustomPainter {
       final y = toY(currentPrice);
       _dash(canvas, Offset(padL, y), Offset(w - padR, y),
         Paint()..color = const Color(0xFF2196F3)..strokeWidth = 0.7);
-      final tagW = padR - 4;
+      const tagW = padR - 4;
       final tagRect = Rect.fromLTWH(w - padR + 2, y - 10, tagW, 20);
       canvas.drawRRect(RRect.fromRectAndRadius(tagRect, const Radius.circular(3)),
         Paint()..color = const Color(0xFF2196F3));
@@ -319,12 +319,12 @@ class _TVPainter extends CustomPainter {
       final conf = activeSignal?['confidence'];
       final label = conf != null ? ' $sig $conf% ' : ' $sig ';
       tp.text = TextSpan(text: label,
-        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace'));
+        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace'));
       tp.layout();
       final bgRect = RRect.fromRectAndRadius(
         Rect.fromLTWH(padL + 40, padT + 4, tp.width + 6, 20), const Radius.circular(4));
       canvas.drawRRect(bgRect, Paint()..color = bc);
-      tp.paint(canvas, Offset(padL + 43, padT + 7));
+      tp.paint(canvas, const Offset(padL + 43, padT + 7));
     }
 
     // -- CROSSHAIR (TradingView hover) --

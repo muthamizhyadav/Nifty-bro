@@ -24,11 +24,11 @@ CONFIG = {
     # 1. Register app at https://myapi.fyers.in/dashboard
     # 2. Redirect URLs (add BOTH in Fyers app dashboard):
     #    http://127.0.0.1:8000/api/auth/callback  (desktop)
-    #    http://192.168.1.2:8000/api/auth/callback  (mobile on same Wi‑Fi)
+    #    http://192.168.1.6:8000/api/auth/callback  (mobile on same Wi‑Fi)
     # 3. Run: python fyers_auth.py (refreshes every 15 days)
     "fyers_app_id": "5LITWFWCEU-100",          # e.g. "ABC123-100"
     "fyers_secret_key": "EWTZ6L9L9C",       # 32-char string
-    "fyers_access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiZDoxIiwiZDoyIiwieDowIiwieDoxIiwieDoyIl0sImF0X2hhc2giOiJnQUFBQUFCcU80amptcjVfM0FQd3cyS1p3bHBvanlPNktqUDdfUEZLWjJDQTNuNzB5UzVXVzFkT3FxRFFiR3RWM0hMMGN4MDE4NEwxRExFemlyMzVQQ3BjeHhOLUtLSnFHSmoyUW9SUHFtV0ZoaE5EVFpGSFg5dz0iLCJkaXNwbGF5X25hbWUiOiIiLCJvbXMiOiJLMSIsImhzbV9rZXkiOiI1OTlhYmNhZGExNDhjMjcxMGU3NmI2ODdkOTBkNWVkMGRjOGM2MzFiMjg0NjA1YTNkNzgxYmJiMCIsImlzRGRwaUVuYWJsZWQiOiJOIiwiaXNNdGZFbmFibGVkIjoiWSIsImZ5X2lkIjoiRkFGOTUyNTAiLCJhcHBUeXBlIjoxMDAsImV4cCI6MTc4MjM0NzQwMCwiaWF0IjoxNzgyMjg2NTYzLCJpc3MiOiJhcGkuZnllcnMuaW4iLCJuYmYiOjE3ODIyODY1NjMsInN1YiI6ImFjY2Vzc190b2tlbiJ9.jeyz-pAeIguIADRjS6G54Jwy-Q9Z7vsAxWPvF-_h2rc",
+    "fyers_access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiZDoxIiwiZDoyIiwieDowIiwieDoxIiwieDoyIl0sImF0X2hhc2giOiJnQUFBQUFCcVFoY2xyWFQxMTRXQXZ5dHVpdE16aml0Y05KT3l3Z1R0N1I5TjdUdzA3MmphNTVnU1pCOTh1NzdRTjdzRXVuQjhjY0tOa2x4N0d0MjJ1dHJmNGF6bjZ2a2hmS2dRMU1BZFZFSFFEbEN0VFh3OTFqMD0iLCJkaXNwbGF5X25hbWUiOiIiLCJvbXMiOiJLMSIsImhzbV9rZXkiOiI1OTlhYmNhZGExNDhjMjcxMGU3NmI2ODdkOTBkNWVkMGRjOGM2MzFiMjg0NjA1YTNkNzgxYmJiMCIsImlzRGRwaUVuYWJsZWQiOiJOIiwiaXNNdGZFbmFibGVkIjoiWSIsImZ5X2lkIjoiRkFGOTUyNTAiLCJhcHBUeXBlIjoxMDAsImV4cCI6MTc4Mjc3OTQwMCwiaWF0IjoxNzgyNzE2MTk3LCJpc3MiOiJhcGkuZnllcnMuaW4iLCJuYmYiOjE3ODI3MTYxOTcsInN1YiI6ImFjY2Vzc190b2tlbiJ9.LXL-RyS6iWawS0HeoW_w22Oj_HekNO4EbRETcCpbht8",
 
     # ═══ CLAUDE AI (MCP assistant) ═══════════════════════════════════
     # Set ANTHROPIC_API_KEY in backend/.env — never commit the key.
@@ -40,7 +40,7 @@ CONFIG = {
 
     # ═══ NETWORK (for mobile app + Fyers OAuth from phone) ═══════════
     # Your Mac's LAN IP — phone must reach this. Run: ipconfig getifaddr en0
-    "backend_lan_host": os.getenv("BACKEND_LAN_HOST", "192.168.1.8"),
+    "backend_lan_host": os.getenv("BACKEND_LAN_HOST", "192.168.1.6"),
     "backend_port": 8000,
 
     # ═══ TRADING MODE ════════════════════════════════════════════════
