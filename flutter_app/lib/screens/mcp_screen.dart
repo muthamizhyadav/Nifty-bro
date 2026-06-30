@@ -221,7 +221,7 @@ class _Bubble extends StatelessWidget {
         decoration: BoxDecoration(
           color: isUser ? const Color(0xFF0D2B1F) : const Color(0xFF0E1117),
           border: Border.all(
-            color: isUser ? const Color(0xFF00D97E33) : const Color(0xFF1C2029),
+            color: isUser ? const Color(0xff00d97e33) : const Color(0xFF1C2029),
           ),
           borderRadius: BorderRadius.circular(8),
         ),

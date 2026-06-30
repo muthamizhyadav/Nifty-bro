@@ -41,7 +41,7 @@ class SettingsScreen extends StatelessWidget {
           _card('Fyers API — mobile login', [
             _info('Add BOTH redirect URLs in Fyers dashboard:'),
             _info('http://127.0.0.1:8000/api/auth/callback  (USB + adb reverse)'),
-            _info('http://192.168.1.2:8000/api/auth/callback  (Wi‑Fi)'),
+            _info('http://192.168.1.6:8000/api/auth/callback  (Wi‑Fi)'),
             _info('USB dev: adb reverse tcp:8000 tcp:8000'),
           ]),
           _card('Fyers API status', [

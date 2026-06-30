@@ -1,0 +1,14 @@
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-29 12:18:41,527+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-29 12:18:59,438+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[access_token_to_hsmtoken:272] data_ws","message":{"type":"cn","code":-99,"message":"Token is expired","s":"error"},"timestamp":"2026-06-29 12:24:43,843+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 12:41:15,375+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 13:52:41,386+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 14:07:26,762+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 14:46:51,396+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 16:13:59,501+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 16:41:25,431+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 18:43:45,015+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 19:50:52,930+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 20:02:01,361+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 20:27:03,010+0530","service":"FyersDataSocket"}
+{"level":"ERROR","location":"[<lambda>:1663] data_ws","message":"[Errno 54] Connection reset by peer","timestamp":"2026-06-29 20:32:34,318+0530","service":"FyersDataSocket"}

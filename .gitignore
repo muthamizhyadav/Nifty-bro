@@ -23,4 +23,4 @@ flutter_app/.flutter-plugins-dependencies
 .vscode/
 *.swp
 .DS_Store
-  
+*.log

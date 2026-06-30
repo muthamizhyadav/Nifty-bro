@@ -80,6 +80,14 @@ class _TimeframeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const timeframes = ['5m', '15m', '1h', '3h'];
+    final countdown = state.candleCountdown;
+    final isOpen = state.marketOpen;
+    final countdownColor = !isOpen
+        ? const Color(0xFF4A4F62)
+        : countdown.startsWith('00:0')
+            ? const Color(0xFFFF6B6B)
+            : const Color(0xFF00D97E);
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -88,32 +96,58 @@ class _TimeframeSelector extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
-        children: timeframes.map((tf) {
-          final selected = state.selectedTimeframe == tf;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => state.setTimeframe(tf),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF00D97E) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  tf,
-                  style: TextStyle(
-                    color: selected ? Colors.black : const Color(0xFF8A8E9C),
-                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 12,
-                    fontFamily: 'monospace',
+        children: [
+          ...timeframes.map((tf) {
+            final selected = state.selectedTimeframe == tf;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => state.setTimeframe(tf),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected ? const Color(0xFF00D97E) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    tf,
+                    style: TextStyle(
+                      color: selected ? Colors.black : const Color(0xFF8A8E9C),
+                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
                   ),
                 ),
               ),
+            );
+          }),
+          Container(
+            margin: const EdgeInsets.only(left: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C2029),
+              borderRadius: BorderRadius.circular(4),
             ),
-          );
-        }).toList(),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.schedule, size: 12, color: countdownColor),
+                const SizedBox(width: 4),
+                Text(
+                  countdown.isEmpty ? '--:--' : countdown,
+                  style: TextStyle(
+                    color: countdownColor,
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

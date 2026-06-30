@@ -49,6 +49,8 @@ class BotState extends ChangeNotifier {
   }
   String selectedTimeframe = '15m';  // 5m, 15m, 1h, 3h
   Candle? liveCandle;  // the currently-forming candle
+  String candleCountdown = '';
+  Timer? _candleTimer;
   List<Candle> candles = [];
   Map<String, dynamic>? activeSignal;
   Map<String, dynamic>? activeTrade;
@@ -85,6 +87,7 @@ class BotState extends ChangeNotifier {
       );
       fetchInitial();
       fetchCandles(silent: true);
+      _startCandleTimer();
     } catch (e) {
       connected = false;
       _connecting = false;
@@ -113,8 +116,6 @@ class BotState extends ChangeNotifier {
           }
           break;
         case 'candle_close':
-          // Backend closes 15m candles. Only auto-append on the 15m view;
-          // other timeframes refresh via fetchCandles().
           if (selectedTimeframe == '15m') {
             final c = Candle.fromJson(data['candle']);
             if (candles.isNotEmpty &&
@@ -126,6 +127,7 @@ class BotState extends ChangeNotifier {
             if (candles.length > 100) candles.removeAt(0);
             liveCandle = null;
           }
+          _updateCountdown();
           _addLog('15m candle closed', 'blue');
           break;
         case 'signal':
@@ -188,6 +190,72 @@ class BotState extends ChangeNotifier {
     }
   }
 
+  void _startCandleTimer() {
+    _candleTimer?.cancel();
+    _updateCountdown();
+    _candleTimer = Timer.periodic(const Duration(seconds: 1), (_) => _updateCountdown());
+  }
+
+  void _stopCandleTimer() {
+    _candleTimer?.cancel();
+    _candleTimer = null;
+  }
+
+  void _updateCountdown() {
+    if (!marketOpen) {
+      if (candleCountdown != '--:--') {
+        candleCountdown = '--:--';
+        notifyListeners();
+      }
+      return;
+    }
+    final secs = _remainingSeconds(selectedTimeframe);
+    final m = secs ~/ 60;
+    final s = secs % 60;
+    final next = '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    if (candleCountdown != next) {
+      candleCountdown = next;
+      notifyListeners();
+    }
+  }
+
+  /// Remaining seconds until the current candle closes.
+  /// Derives IST hour/minute/second from UTC directly to avoid
+  /// DateTime.timezone/UTC arithmetic bugs.
+  int _remainingSeconds(String tf) {
+    final now = DateTime.now().toUtc();
+    final totalMin = now.hour * 60 + now.minute + 5 * 60 + 30;
+    final h = totalMin ~/ 60;
+    final m = totalMin % 60;
+    final daySec = h * 3600 + m * 60 + now.second;
+    final endDaySec = _candleEndSecond(h, m, tf);
+    if (endDaySec > daySec) return endDaySec - daySec;
+    return 86400 - daySec + endDaySec;
+  }
+
+  /// Seconds-since-midnight IST of the next candle boundary.
+  static int _candleEndSecond(int h, int m, String tf) {
+    switch (tf) {
+      case '15m':
+        const openMin = 9 * 60 + 15;
+        final curMin = h * 60 + m;
+        if (curMin < openMin) return 9 * 3600 + 30 * 60;
+        final bucket = (curMin - openMin) ~/ 15;
+        final endMin = openMin + (bucket + 1) * 15;
+        return endMin * 60;
+      case '5m':
+        final nextMin = ((m ~/ 5) + 1) * 5;
+        if (nextMin >= 60) return (h + 1) * 3600;
+        return h * 3600 + nextMin * 60;
+      case '1h':
+        return (h + 1) * 3600;
+      case '3h':
+        return ((h ~/ 3) + 1) * 3 * 3600;
+      default:
+        return (h + 1) * 3600;
+    }
+  }
+
   void _addLog(String msg, String color) {
     // Skip back-to-back identical entries (common on mobile reconnect)
     if (logs.isNotEmpty && logs.first['msg'] == msg) return;
@@ -237,7 +305,8 @@ class BotState extends ChangeNotifier {
 
   Future<void> setTimeframe(String tf) async {
     selectedTimeframe = tf;
-    liveCandle = null;  // clear forming candle when switching
+    liveCandle = null;
+    _startCandleTimer();
     notifyListeners();
     await fetchCandles();
   }
@@ -339,6 +408,7 @@ class BotState extends ChangeNotifier {
   @override
   void dispose() {
     _reconnectTimer?.cancel();
+    _stopCandleTimer();
     _ws?.sink.close();
     super.dispose();
   }
